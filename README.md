@@ -6,6 +6,7 @@
 [![Local-First](https://img.shields.io/badge/Architecture-Local--First-22C55E)](https://flutter.dev)
 [![Gemini AI](https://img.shields.io/badge/Gemini-AI%20Engine-4285F4?logo=google)](https://ai.google.dev)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-green)](https://flutter.dev/multi-platform)
+[![Deploy to GitHub Pages](https://github.com/GodzillaCupu/ScreenFlow/actions/workflows/flutter-gh-pages.yml/badge.svg)](https://github.com/GodzillaCupu/ScreenFlow/actions/workflows/flutter-gh-pages.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
 ---
@@ -15,6 +16,8 @@
 ScriptFlow adalah aplikasi produktivitas berbasis **local-first** (tanpa backend cloud) yang membantu kreator konten mengelola siklus pembuatan video — mulai dari **ideasi naskah** hingga **eksekusi rekaman**. Naskah, folder proyek, dan rekaman audio disimpan **sepenuhnya di perangkat**; hanya fitur AI (**Google Gemini 3.5 Flash**) yang memerlukan koneksi. Cocok untuk menulis & merekam podcast secara offline di perjalanan.
 
 **Target Platform:** Android & Web Desktop (satu codebase Flutter)
+
+🌐 **Akses Web Resmi (GitHub Pages):** [https://GodzillaCupu.github.io/ScreenFlow/](https://GodzillaCupu.github.io/ScreenFlow/)
 
 ---
 
@@ -188,6 +191,17 @@ On-device files:
 
 ---
 
+## 🚀 Deployment Otomatis (GitHub Pages)
+
+Proyek ini telah terintegrasi penuh dengan **GitHub Actions** untuk melakukan kompilasi dan pembaruan otomatis ke **GitHub Pages**. Setiap kali Anda melakukan `git push` ke cabang `main`, alur kerja CI/CD akan otomatis dijalankan untuk:
+1. Mempersiapkan lingkungan Flutter stable.
+2. Mengunduh dependensi (`flutter pub get`).
+3. Menjalankan pembuatan kode model database (`dart run build_runner build`).
+4. Men-build web aplikasi dengan base href yang sesuai (`/ScreenFlow/`).
+5. Mempublikasikan hasil build langsung ke cabang `gh-pages` untuk ditayangkan langsung secara online.
+
+---
+
 ## 🗺️ Roadmap
 
 - [x] Inisialisasi project (local-first, tanpa Firebase)
@@ -201,6 +215,7 @@ On-device files:
 - [x] Audio recording di layar teleprompter
 - [x] Search & filter (Archive / dalam folder)
 - [x] Profil lokal (display name/bio) di Settings
+- [x] Integrasi CI/CD & Web Hosting (GitHub Pages otomatis via GitHub Actions)
 - [ ] Version history (Riwayat revisi script)
 
 ---
