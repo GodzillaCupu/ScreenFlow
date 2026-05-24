@@ -1,16 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../shared/widgets/script_card.dart';
-import '../../../shared/widgets/status_badge.dart';
+import 'package:intl/intl.dart';
 
-class ProjectFolderScreen extends StatelessWidget {
+import '../../../core/theme/app_colors.dart';
+import '../../../data/models/project.dart';
+import '../../../data/models/script.dart';
+import '../../../shared/widgets/script_card.dart';
+import '../providers/dashboard_providers.dart';
+
+class ProjectFolderScreen extends ConsumerWidget {
   final String id;
 
   const ProjectFolderScreen({required this.id, super.key});
 
+  Future<void> _newScriptInFolder(BuildContext context, WidgetRef ref) async {
+    final uuid = await ref
+        .read(dashboardActionsProvider)
+        .createScript(projectId: id, title: 'Untitled Script');
+    if (context.mounted) context.push('/editor/$uuid');
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final project = ref.watch(projectByIdProvider(id)).valueOrNull;
+    final scripts = ref.watch(scriptsByProjectProvider(id)).valueOrNull ??
+        const <Script>[];
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -19,68 +35,23 @@ class ProjectFolderScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          'Project Folder',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
-        ),
+        title: const Text('Project Folder',
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_horiz, color: AppColors.textPrimary),
-            onPressed: () {},
-          )
-        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.accentBlue,
+        foregroundColor: Colors.white,
+        onPressed: () => _newScriptInFolder(context, ref),
+        child: const Icon(Icons.add, size: 28),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
             const SizedBox(height: 16),
-            // Workspace Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentRed.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.play_arrow, color: AppColors.accentRed, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'WORKSPACE',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppColors.textMuted,
-                              letterSpacing: 1.0,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'YouTube',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Main channel content',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            _Header(project: project),
             const SizedBox(height: 24),
-            // Search Bar
             Container(
               decoration: BoxDecoration(
                 color: AppColors.bgElevated,
@@ -88,72 +59,103 @@ class ProjectFolderScreen extends StatelessWidget {
               ),
               child: const TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search within YouTube...',
+                  hintText: 'Search within this folder...',
                   hintStyle: TextStyle(color: AppColors.textMuted),
-                  prefixIcon: Icon(Icons.search, color: AppColors.textSecondary),
+                  prefixIcon:
+                      Icon(Icons.search, color: AppColors.textSecondary),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            // Folder Contents List
             Expanded(
-              child: ListView.builder(
-                itemCount: 6,
-                itemBuilder: (context, index) {
-                  // The last item is "AI Brainstorm card" in prompt specs, adding a placeholder
-                  if (index == 5) {
-                    return Card(
-                      color: AppColors.accentBlue.withValues(alpha: 0.1),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                        side: const BorderSide(color: AppColors.accentBlue, width: 1),
-                        borderRadius: BorderRadius.circular(16),
+              child: scripts.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No scripts in this folder yet.\nTap + to create one.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textMuted),
                       ),
-                      child: InkWell(
-                        onTap: () {},
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.auto_awesome, color: AppColors.accentBlue),
-                              const SizedBox(width: 12),
-                              Text(
-                                'AI Brainstorm Idea...',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      color: AppColors.accentBlue,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  return ScriptCard(
-                    title: 'A-Roll Intro $index',
-                    previewContent: 'INT. STUDIO - DAY\nLet us talk about the craziest thing that happened.',
-                    status: ScriptStatus.outline,
-                    timestamp: 'Oct 24, 2024',
-                    onTap: () {
-                      context.push('/editor/script_$index');
-                    },
-                  );
-                },
-              ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 96),
+                      itemCount: scripts.length,
+                      itemBuilder: (context, index) {
+                        final s = scripts[index];
+                        return ScriptCard(
+                          title: s.title,
+                          previewContent:
+                              s.content.isEmpty ? 'Empty script' : s.content,
+                          status: s.status,
+                          timestamp:
+                              DateFormat.yMMMd().format(s.updatedAt),
+                          onTap: () => context.push('/editor/${s.uuid}'),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.accentBlue,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add, size: 28),
-        onPressed: () {},
-      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.project});
+  final Project? project;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = project?.title ?? 'Loading…';
+    final desc = project?.description ?? project?.type.label ?? '';
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.accentBlue.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child:
+              const Icon(Icons.folder, color: AppColors.accentBlue, size: 32),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'WORKSPACE',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.textMuted,
+                      letterSpacing: 1.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              if (desc.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  desc,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

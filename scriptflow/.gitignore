@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets — never commit the real key file (it is bundled as a build asset)
+.env
+
+# Generated code (Isar / build_runner) — regenerate with build_runner
+*.g.dart

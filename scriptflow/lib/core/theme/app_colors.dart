@@ -19,4 +19,23 @@ class AppColors {
 
   // Borders
   static const border = Color(0xFF2D2D2D);
+  static const borderSubtle = Color(0xFF1F2025);
+
+  // ── Aliases used by the ported local-first engine (editor, teleprompter,
+  // Muse panel). Mapped onto the existing palette so both naming schemes
+  // resolve to one source of truth. ──
+  static const bgRoot = bgPrimary;
+  static const bgSidebar = bgSurface;
+  static const bgInput = bgElevated;
+  static const aiBlue = accentBlue; // AI / "The Muse"
+  static const aiBlueBright = Color(0xFF2F80FF);
+  static const recordGreen = accentGreen; // Record / Ready
+  static const danger = accentRed;
+  static const warning = Color(0xFFF59E0B);
+
+  // Script lifecycle status colors.
+  static const statusDrafting = warning;
+  static const statusReview = accentBlue;
+  static const statusReady = accentGreen;
+  static const statusApproved = Color(0xFF8B5CF6);
 }

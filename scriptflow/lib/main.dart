@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// Note: flutter_web_plugins is handled dynamically on web, but for clean url strategy:
-// Use conditional import or flutter_web_plugins/url_strategy.dart if available.
-// For now, standard hash URL is fine until web plugin is explicitly verified.
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase (Stub for now: requires google-services.json and flutterfire config)
-  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  
+
+  // Local-first: no Firebase. Load the Gemini key + config before runApp.
+  // Wrapped so a missing .env during early dev doesn't hard-crash the app.
+  try {
+    await dotenv.load(fileName: '.env');
+  } on Exception {
+    debugPrint('.env not found — AI features disabled until configured.');
+  }
+
   runApp(
     const ProviderScope(
       child: ScriptFlowApp(),

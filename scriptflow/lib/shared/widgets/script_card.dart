@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/models/script.dart';
 import 'status_badge.dart';
 
 class ScriptCard extends StatelessWidget {

@@ -3,7 +3,7 @@
 > AI-powered script management & teleprompter app for content creators.
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
-[![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%7C%20Auth%20%7C%20Storage-FFCA28?logo=firebase)](https://firebase.google.com)
+[![Local-First](https://img.shields.io/badge/Architecture-Local--First-22C55E)](https://flutter.dev)
 [![Gemini AI](https://img.shields.io/badge/Gemini-AI%20Engine-4285F4?logo=google)](https://ai.google.dev)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-green)](https://flutter.dev/multi-platform)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
@@ -12,7 +12,7 @@
 
 ## 📖 Tentang ScriptFlow
 
-ScriptFlow adalah aplikasi produktivitas berbasis **cloud-native** yang membantu kreator konten mengelola siklus pembuatan video — mulai dari **ideasi naskah** hingga **eksekusi rekaman**. Didukung oleh **Google Gemini AI** untuk penulisan naskah otomatis dan fitur **teleprompter terintegrasi** untuk memudahkan proses pengambilan gambar.
+ScriptFlow adalah aplikasi produktivitas berbasis **local-first** (tanpa backend cloud) yang membantu kreator konten mengelola siklus pembuatan video — mulai dari **ideasi naskah** hingga **eksekusi rekaman**. Naskah, folder proyek, dan rekaman audio disimpan **sepenuhnya di perangkat**; hanya fitur AI (**Google Gemini**) yang memerlukan koneksi. Cocok untuk menulis & merekam podcast secara offline di perjalanan.
 
 **Target Platform:** Android & Web Desktop (satu codebase Flutter)
 
@@ -24,13 +24,11 @@ ScriptFlow adalah aplikasi produktivitas berbasis **cloud-native** yang membantu
 |---|---|
 | 🤖 **AI Content Assistant** | Generate naskah otomatis dari topik/kata kunci via Gemini AI |
 | 📁 **Project Management** | Kelompokkan naskah per proyek (YouTube, TikTok, Podcast, dll.) |
-| ✏️ **Text Editor** | Editor minimalis dengan auto-save ke cloud |
+| ✏️ **Text Editor** | Editor minimalis dengan auto-save ke database lokal |
 | 📜 **Teleprompter Mode** | Teks berjalan otomatis, kecepatan & font size adjustable |
-| 🎙️ **Audio Recording** *(opsional)* | Rekam suara langsung saat teleprompter berjalan |
-| 📤 **Export .txt** | Unduh naskah ke penyimpanan lokal |
-| 🔄 **Version History** | Lacak perubahan naskah & kembalikan ke versi sebelumnya |
-| 🌐 **Cloud Sync** | Sinkronisasi real-time antara Web dan Android |
-| 📴 **Offline Mode** *(opsional)* | Akses naskah dari cache saat tidak ada koneksi |
+| 🎙️ **Audio Recording** | Rekam suara lokal lewat mikrofon device (offline) |
+| 📤 **Export .txt** | Simpan naskah ke penyimpanan lokal + share sheet |
+| 📴 **Offline by Default** | Naskah & rekaman selalu tersedia tanpa koneksi |
 
 ---
 
@@ -38,11 +36,11 @@ ScriptFlow adalah aplikasi produktivitas berbasis **cloud-native** yang membantu
 
 ```
 Frontend   → Flutter (Android + Web)
-Auth       → Firebase Authentication (Google SSO)
-Database   → Cloud Firestore
-Storage    → Firebase Storage (audio recordings)
-AI Engine  → Google Gemini API via Firebase Cloud Functions
-Hosting    → Firebase Hosting (Web)
+State Mgmt → Riverpod
+Database   → Isar (local, on-device)
+Storage    → path_provider (audio recordings + .txt exports, on-device)
+AI Engine  → Google Gemini (client-side via google_generative_ai, key in .env)
+Auth       → None (local-first; login screen is an optional local gate)
 ```
 
 ---
@@ -51,27 +49,30 @@ Hosting    → Firebase Hosting (Web)
 
 ```
 scriptflow/
-├── android/                    # Android-specific config
-├── web/                        # Web-specific config
+├── android/ · web/             # Platform config (mic + internet permissions)
+├── .env / .env.example         # Gemini API key (git-ignored, bundled asset)
 ├── lib/
 │   ├── core/
-│   │   ├── constants/          # App-wide constants & theme
-│   │   ├── utils/              # Helper functions
-│   │   └── services/           # Firebase, Gemini service wrappers
+│   │   ├── config/             # env_config (reads .env)
+│   │   ├── constants/          # app constants (debounce, teleprompter limits)
+│   │   ├── layout/             # AdaptiveLayout, mobile/desktop shells, sidebar
+│   │   ├── router/             # go_router table
+│   │   ├── theme/              # colors + theme (Inter/Poppins, dark)
+│   │   └── providers.dart      # DI graph (repos + services)
+│   ├── data/                   # ── LOCAL STORAGE / REPOSITORY ──
+│   │   ├── models/             # Isar collections: Project, Script
+│   │   ├── local/              # isar_service (opens the DB)
+│   │   └── repositories/       # ScriptRepository / ProjectRepository (+ Isar impl)
+│   ├── services/               # gemini · audio_recorder · export(.txt)
 │   ├── features/
-│   │   ├── auth/               # Google SSO login & onboarding
-│   │   ├── dashboard/          # Project & script list
-│   │   ├── editor/             # Script editor + AI assistant
-│   │   ├── teleprompter/       # Teleprompter + audio recording
-│   │   └── settings/           # User preferences
-│   ├── shared/
-│   │   ├── widgets/            # Reusable UI components
-│   │   └── models/             # Data models (Project, Script, etc.)
+│   │   ├── auth/               # login + onboarding (local gate, no cloud)
+│   │   ├── dashboard/          # workspace + project folder (Isar-backed)
+│   │   ├── editor/             # editor + auto-save controller + Muse (AI) panel
+│   │   ├── teleprompter/       # auto-scroll screen + controls
+│   │   ├── scripts/            # script picker (Editor/Prompter tabs)
+│   │   └── settings/           # local-first preferences
+│   ├── shared/widgets/         # FolderCard, ScriptCard, StatusBadge
 │   └── main.dart
-├── functions/                  # Firebase Cloud Functions (Gemini integration)
-├── firebase.json
-├── firestore.rules
-├── storage.rules
 └── pubspec.yaml
 ```
 
@@ -83,11 +84,9 @@ scriptflow/
 
 Pastikan kamu sudah menginstall:
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) `>=3.0.0`
-- [Node.js](https://nodejs.org/) `>=18` (untuk Firebase Functions)
-- [Firebase CLI](https://firebase.google.com/docs/cli): `npm install -g firebase-tools`
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) `>=3.27` (Dart `>=3.6`)
 - Android Studio / VS Code dengan Flutter extension
-- Akun Google Cloud dengan **Gemini API** enabled
+- API key Gemini dari [Google AI Studio](https://aistudio.google.com/app/apikey) (untuk fitur AI)
 
 ### 1. Clone Repository
 
@@ -96,94 +95,79 @@ git clone https://github.com/your-username/scriptflow.git
 cd scriptflow
 ```
 
-### 2. Setup Firebase
+### 2. Konfigurasi Environment (.env)
 
 ```bash
-# Login ke Firebase
-firebase login
-
-# Inisialisasi project (pilih: Firestore, Functions, Hosting, Storage)
-firebase init
-
-# Ganti dengan Firebase project ID kamu
-firebase use --add
+# Salin template, lalu isi GEMINI_API_KEY
+cp .env.example .env
 ```
 
-### 3. Konfigurasi Environment
+`.env` sudah di-`.gitignore` dan di-bundle sebagai Flutter asset. Tanpa key,
+aplikasi tetap berjalan — hanya fitur AI "The Muse" yang nonaktif.
 
-Buat file `lib/core/constants/env.dart` berdasarkan template berikut:
+> ⚠️ **Catatan keamanan:** API key yang di-bundle ke aplikasi klien bisa
+> diekstrak. `.env` hanya melindungi dari commit git. Untuk produksi, restrict
+> key di Google Cloud Console atau proxy lewat serverless function.
 
-```dart
-// lib/core/constants/env.dart
-class Env {
-  static const String geminiApiKey = 'YOUR_GEMINI_API_KEY';
-  static const String firebaseProjectId = 'YOUR_FIREBASE_PROJECT_ID';
-}
-```
-
-> ⚠️ **Jangan commit file ini ke repository.** Tambahkan ke `.gitignore`.
-
-Atau gunakan `.env` file dan package [flutter_dotenv](https://pub.dev/packages/flutter_dotenv).
-
-### 4. Download `google-services.json` & `GoogleService-Info.plist`
-
-- Dari **Firebase Console → Project Settings → Your Apps**
-- Letakkan `google-services.json` di `android/app/`
-- Letakkan `GoogleService-Info.plist` di `ios/Runner/` *(jika target iOS)*
-
-### 5. Install Dependencies
+### 3. Install Dependencies
 
 ```bash
-# Flutter dependencies
 flutter pub get
-
-# Firebase Functions dependencies
-cd functions
-npm install
-cd ..
 ```
 
-### 6. Deploy Firebase Functions
+### 4. Generate Kode Isar (build_runner)
+
+Model Isar membutuhkan `*.g.dart` yang di-generate:
 
 ```bash
-cd functions
-npm run build
-firebase deploy --only functions
+dart run build_runner build --delete-conflicting-outputs
 ```
 
-### 7. Jalankan Aplikasi
+### 5. Jalankan Aplikasi
 
 ```bash
-# Android
+# Android (target utama)
 flutter run
 
-# Web (Chrome)
+# Web (Chrome) — catatan: Isar di web perlu setup tambahan, lihat di bawah
 flutter run -d chrome
-
-# Web (build production)
-flutter build web
-firebase deploy --only hosting
 ```
 
 ---
 
-## 🔥 Firestore Data Structure
+## 🗄️ Local Data Model (Isar)
+
+Disimpan on-device via Isar. Script terhubung ke Project lewat `projectId`.
+File rekaman & ekspor disimpan di app documents dir via `path_provider`.
 
 ```
-users/{userId}
-  └── profile: { name, email, photoUrl, createdAt }
-
-projects/{projectId}
+Project (collection)
+  ├── uuid: string (unik)
   ├── title: string
-  ├── category: enum (youtube | tiktok | podcast | other)
-  ├── ownerId: string
-  ├── createdAt: timestamp
-  └── scripts/{scriptId}
-        ├── title: string
-        ├── content: string
-        ├── updatedAt: timestamp
-        └── history: [{ content, savedAt }]
+  ├── type: enum (youtubeLongform | shorts | podcast | videoEssay | other)
+  ├── description: string?
+  ├── createdAt / updatedAt: DateTime
+  └── isArchived: bool
+
+Script (collection)
+  ├── uuid: string (unik)
+  ├── projectId: string?          → uuid Project pemilik
+  ├── title / content: string
+  ├── status: enum (drafting | review | readyToRecord | approved)
+  ├── wordCount: int
+  ├── scrollSpeed / fontSize / mirror / focusMode   → preferensi teleprompter
+  ├── recordingPaths: List<String>   → path .m4a lokal
+  └── createdAt / updatedAt / isArchived
+
+On-device files:
+  <appDocs>/recordings/<scriptUuid>/take_*.m4a
+  <appDocs>/exports/<title>.txt
 ```
+
+> **Isar di Web:** dukungan web Isar terbatas & butuh inisialisasi WASM. Karena
+> akses data sudah diabstraksi lewat `ScriptRepository`/`ProjectRepository`
+> (lihat `lib/data/repositories/`), untuk web kamu cukup membuat implementasi
+> Hive dan menukar binding di `lib/core/providers.dart` — kode fitur tak berubah.
 
 ---
 
@@ -203,18 +187,18 @@ projects/{projectId}
 
 ## 🗺️ Roadmap
 
-- [x] Inisialisasi project & setup Firebase
-- [ ] Google SSO Authentication
-- [ ] Onboarding flow (3-4 slide)
-- [ ] Dashboard — project & script management
-- [ ] Script editor dengan auto-save
-- [ ] Integrasi Gemini AI (generate & revisi naskah)
-- [ ] Export .txt
+- [x] Inisialisasi project (local-first, tanpa Firebase)
+- [x] Onboarding flow + login screen (gate lokal, tanpa cloud auth)
+- [x] Web/mobile responsive layout (sidebar + bottom nav)
+- [x] Dashboard — project & script management (Isar)
+- [x] Script editor dengan auto-save ke DB lokal
+- [x] Integrasi Gemini AI (generate, brainstorm, fix grammar)
+- [x] Teleprompter mode (auto-scroll, speed/font/mirror/focus)
+- [x] Export .txt + share sheet
+- [~] Audio recording (service siap; tombol rekam di teleprompter menyusul)
 - [ ] Version history
-- [ ] Teleprompter mode
-- [ ] Audio recording
-- [ ] Offline mode (Hive/local cache)
-- [ ] Web responsive layout (sidebar navigation)
+- [ ] Search & filter (Archive / dalam folder)
+- [ ] Profil lokal (display name/bio) di Settings
 
 ---
 
@@ -237,5 +221,5 @@ Didistribusikan di bawah [MIT License](LICENSE).
 ---
 
 <p align="center">
-  Built with ❤️ using Flutter & Firebase
+  Built with ❤️ using Flutter · Local-First
 </p>
