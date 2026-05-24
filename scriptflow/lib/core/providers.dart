@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/local/hive_service.dart';
 import '../data/local/isar_service.dart';
 import '../data/models/script.dart';
+import '../data/repositories/hive_project_repository.dart';
+import '../data/repositories/hive_script_repository.dart';
 import '../data/repositories/project_repository.dart';
 import '../data/repositories/script_repository.dart';
 import '../services/audio_recorder_service.dart';
@@ -14,14 +18,21 @@ import 'config/env_config.dart';
 /// repository for web) and the whole app follows.
 
 final isarServiceProvider = Provider<IsarService>((ref) => IsarService());
+final hiveServiceProvider = Provider<HiveService>((ref) => HiveService());
 
-final scriptRepositoryProvider = Provider<ScriptRepository>(
-  (ref) => IsarScriptRepository(ref.watch(isarServiceProvider)),
-);
+final scriptRepositoryProvider = Provider<ScriptRepository>((ref) {
+  if (kIsWeb) {
+    return HiveScriptRepository(ref.watch(hiveServiceProvider));
+  }
+  return IsarScriptRepository(ref.watch(isarServiceProvider));
+});
 
-final projectRepositoryProvider = Provider<ProjectRepository>(
-  (ref) => IsarProjectRepository(ref.watch(isarServiceProvider)),
-);
+final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
+  if (kIsWeb) {
+    return HiveProjectRepository(ref.watch(hiveServiceProvider));
+  }
+  return IsarProjectRepository(ref.watch(isarServiceProvider));
+});
 
 final geminiServiceProvider = Provider<GeminiService>(
   (ref) => GeminiService(
@@ -44,3 +55,4 @@ final exportServiceProvider = Provider<ExportService>((ref) => ExportService());
 final recentScriptsProvider = StreamProvider<List<Script>>(
   (ref) => ref.watch(scriptRepositoryProvider).watchRecent(),
 );
+

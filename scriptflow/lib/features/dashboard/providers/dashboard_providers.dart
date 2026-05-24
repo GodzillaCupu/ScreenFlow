@@ -61,7 +61,7 @@ class DashboardActions {
     return script.uuid;
   }
 
-  Future<String> createProject({
+  Future<void> createProject({
     required String title,
     ProjectType type = ProjectType.other,
   }) async {
@@ -69,4 +69,23 @@ class DashboardActions {
     await _ref.read(projectRepositoryProvider).save(project);
     return project.uuid;
   }
+
+  Future<void> updateScriptStatus(Script script, ScriptStatus status) async {
+    script.status = status;
+    await _ref.read(scriptRepositoryProvider).save(script);
+  }
+
+  Future<void> renameScript(Script script, String newTitle) async {
+    script.title = newTitle;
+    await _ref.read(scriptRepositoryProvider).save(script);
+  }
+
+  Future<void> setArchived(String uuid, bool archived) async {
+    await _ref.read(scriptRepositoryProvider).setArchived(uuid, archived: archived);
+  }
+
+  Future<void> deleteScript(String uuid) async {
+    await _ref.read(scriptRepositoryProvider).delete(uuid);
+  }
 }
+

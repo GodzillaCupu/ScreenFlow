@@ -29,8 +29,8 @@ class DashboardScreen extends ConsumerWidget {
         const <String, int>{};
 
     final headerNode = _buildGreetingHeader(context, ref, scripts.length);
-    final scriptsNode = _buildRecentScriptsList(context, scripts);
-    final foldersNode = _buildFoldersSection(context, projects, counts);
+    final scriptsNode = _buildRecentScriptsList(context, ref, scripts);
+    final foldersNode = _buildFoldersSection(context, projects, counts, ref);
 
     if (isDesktop) {
       return Scaffold(
@@ -181,7 +181,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentScriptsList(BuildContext context, List<Script> scripts) {
+  Widget _buildRecentScriptsList(BuildContext context, WidgetRef ref, List<Script> scripts) {
     final bool isDesktop = AdaptiveLayout.isDesktop(context);
 
     Widget tile(Script s) => ScriptCard(
@@ -190,6 +190,7 @@ class DashboardScreen extends ConsumerWidget {
           status: s.status,
           timestamp: 'Edited ${DateFormat.MMMd().format(s.updatedAt)}',
           onTap: () => context.push('/editor/${s.uuid}'),
+          onAction: (action) => _handleScriptAction(context, ref, s, action),
         );
 
     final Widget body;
@@ -237,6 +238,7 @@ class DashboardScreen extends ConsumerWidget {
     BuildContext context,
     List<Project> projects,
     Map<String, int> counts,
+    WidgetRef ref,
   ) {
     final bool isDesktop = AdaptiveLayout.isDesktop(context);
 
@@ -245,7 +247,7 @@ class DashboardScreen extends ConsumerWidget {
       children: [
         Text('Channels', style: Theme.of(context).textTheme.titleLarge),
         TextButton(
-          onPressed: () {},
+          onPressed: () => _showCreateProjectDialog(context, ref),
           child: const Text('Manage',
               style: TextStyle(color: AppColors.accentBlue)),
         ),
@@ -326,5 +328,224 @@ class DashboardScreen extends ConsumerWidget {
         ProjectType.videoEssay => (Icons.movie_outlined, AppColors.accentBlue),
         ProjectType.other => (Icons.folder, AppColors.textSecondary),
       };
+
+  Future<void> _showCreateProjectDialog(BuildContext context, WidgetRef ref) async {
+    final titleController = TextEditingController();
+    ProjectType selectedType = ProjectType.youtubeLongform;
+    
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: AppColors.bgSurface,
+              title: const Text('New Channel', style: TextStyle(color: AppColors.textPrimary)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: const InputDecoration(
+                      labelText: 'Channel Name',
+                      labelStyle: TextStyle(color: AppColors.textSecondary),
+                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<ProjectType>(
+                    value: selectedType,
+                    dropdownColor: AppColors.bgElevated,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: const InputDecoration(
+                      labelText: 'Content Type',
+                      labelStyle: TextStyle(color: AppColors.textSecondary),
+                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+                    ),
+                    items: ProjectType.values.map((type) {
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(type.label),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => selectedType = val);
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (titleController.text.trim().isNotEmpty) {
+                      ref.read(dashboardActionsProvider).createProject(
+                            title: titleController.text.trim(),
+                            type: selectedType,
+                          );
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accentBlue,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Create'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _handleScriptAction(
+    BuildContext context,
+    WidgetRef ref,
+    Script script,
+    String action,
+  ) async {
+    final actions = ref.read(dashboardActionsProvider);
+    switch (action) {
+      case 'rename':
+        await _showRenameDialog(context, ref, script);
+      case 'status':
+        await _showStatusDialog(context, ref, script);
+      case 'archive':
+        await actions.setArchived(script.uuid, true);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Script moved to Archive.'),
+              action: SnackBarAction(
+                label: 'Undo',
+                onPressed: () => actions.setArchived(script.uuid, false),
+              ),
+            ),
+          );
+        }
+      case 'delete':
+        await _showDeleteDialog(context, ref, script);
+    }
+  }
+
+  Future<void> _showRenameDialog(
+      BuildContext context, WidgetRef ref, Script script) async {
+    final controller = TextEditingController(text: script.title);
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: const Text('Rename Script',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: const InputDecoration(
+            labelText: 'New title',
+            labelStyle: TextStyle(color: AppColors.textSecondary),
+            enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.border)),
+            focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.accentBlue)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                ref
+                    .read(dashboardActionsProvider)
+                    .renameScript(script, controller.text.trim());
+                Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accentBlue,
+                foregroundColor: Colors.white),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showStatusDialog(
+      BuildContext context, WidgetRef ref, Script script) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: const Text('Change Status',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ScriptStatus.values
+              .map((s) => RadioListTile<ScriptStatus>(
+                    value: s,
+                    groupValue: script.status,
+                    title: Text(s.label,
+                        style: const TextStyle(color: AppColors.textPrimary)),
+                    activeColor: AppColors.accentBlue,
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref
+                            .read(dashboardActionsProvider)
+                            .updateScriptStatus(script, val);
+                        Navigator.pop(ctx);
+                      }
+                    },
+                  ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDeleteDialog(
+      BuildContext context, WidgetRef ref, Script script) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: const Text('Delete Script',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          'Permanently delete "${script.title}"? This cannot be undone.',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+                foregroundColor: Colors.white),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      ref.read(dashboardActionsProvider).deleteScript(script.uuid);
+    }
+  }
 }
+
+
 

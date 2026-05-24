@@ -9,6 +9,7 @@ class ScriptCard extends StatelessWidget {
   final ScriptStatus status;
   final String timestamp;
   final VoidCallback onTap;
+  final void Function(String action)? onAction;
 
   const ScriptCard({
     required this.title,
@@ -16,6 +17,7 @@ class ScriptCard extends StatelessWidget {
     required this.status,
     required this.timestamp,
     required this.onTap,
+    this.onAction,
     super.key,
   });
 
@@ -46,12 +48,18 @@ class ScriptCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      // show bottom sheet
-                    },
-                    child: const Icon(Icons.more_horiz, color: AppColors.textSecondary, size: 20),
-                  ),
+                  if (onAction != null)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_horiz, color: AppColors.textSecondary, size: 20),
+                      color: AppColors.bgElevated,
+                      onSelected: onAction,
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(value: 'rename', child: Text('Rename', style: TextStyle(color: AppColors.textPrimary))),
+                        PopupMenuItem(value: 'status', child: Text('Change Status', style: TextStyle(color: AppColors.textPrimary))),
+                        PopupMenuItem(value: 'archive', child: Text('Archive', style: TextStyle(color: AppColors.textPrimary))),
+                        PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.danger))),
+                      ],
+                    ),
                 ],
               ),
               const SizedBox(height: 8),
