@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/env_config.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/layout/adaptive_layout.dart';
 
-/// The "Ask Muse to brainstorm…" bottom sheet. Streams Gemini output live and
+/// The "Ask Muse to brainstorm…" panel. Streams Gemini output live and
 /// lets the writer insert the result into the script.
 class MusePanel extends ConsumerStatefulWidget {
   const MusePanel({
@@ -79,6 +80,7 @@ class _MusePanelState extends ConsumerState<MusePanel> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = AdaptiveLayout.isDesktop(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     if (!EnvConfig.isConfigured) {
@@ -100,10 +102,11 @@ class _MusePanelState extends ConsumerState<MusePanel> {
       );
     }
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, bottomInset + 20),
+    return Container(
+      color: isDesktop ? AppColors.bgSidebar : Colors.transparent,
+      padding: EdgeInsets.fromLTRB(20, isDesktop ? 24 : 16, 20, isDesktop ? 24 : bottomInset + 20),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: isDesktop ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -120,9 +123,10 @@ class _MusePanelState extends ConsumerState<MusePanel> {
             ],
           ),
           const SizedBox(height: 14),
+          if (isDesktop) const Spacer(), // Push content to bottom on desktop
           if (_output.isNotEmpty || _busy)
             Container(
-              constraints: const BoxConstraints(maxHeight: 240),
+              constraints: BoxConstraints(maxHeight: isDesktop ? 400 : 240),
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               margin: const EdgeInsets.only(bottom: 14),
@@ -188,7 +192,9 @@ class _MusePanelState extends ConsumerState<MusePanel> {
               child: TextButton.icon(
                 onPressed: () {
                   widget.onInsert(_output);
-                  Navigator.of(context).maybePop();
+                  if (!isDesktop) {
+                    Navigator.of(context).maybePop();
+                  }
                 },
                 icon: const Icon(Icons.add, color: AppColors.recordGreen),
                 label: const Text(
@@ -203,3 +209,4 @@ class _MusePanelState extends ConsumerState<MusePanel> {
     );
   }
 }
+

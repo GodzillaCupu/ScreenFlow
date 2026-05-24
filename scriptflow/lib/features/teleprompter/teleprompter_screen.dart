@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/script.dart';
+import '../../core/layout/adaptive_layout.dart';
+import '../../core/layout/web_desktop_shell.dart';
 import 'providers/teleprompter_controller.dart';
 import 'widgets/teleprompter_controls.dart';
 
@@ -46,10 +48,6 @@ class _TeleprompterScreenState extends ConsumerState<TeleprompterScreen>
   }
 
   // ── Core auto-scroll implementation ───────────────────────────────────
-  // Called once per frame while playing. `elapsed` is the total time the
-  // Ticker has been active; we take the delta since the previous frame and
-  // advance the scroll offset by (speed × dt). This keeps a constant on-screen
-  // reading speed regardless of whether the device renders at 60 or 120 fps.
   void _onTick(Duration elapsed) {
     final dtSeconds = (elapsed - _lastTick).inMicroseconds / 1e6;
     _lastTick = elapsed;
@@ -69,8 +67,6 @@ class _TeleprompterScreenState extends ConsumerState<TeleprompterScreen>
 
   void _start() {
     if (!_ticker.isActive) {
-      // Ticker.elapsed restarts at zero on start(), so reset the baseline to
-      // avoid a huge first-frame delta that would jump the scroll position.
       _lastTick = Duration.zero;
       _ticker.start();
     }
@@ -101,40 +97,89 @@ class _TeleprompterScreenState extends ConsumerState<TeleprompterScreen>
   @override
   Widget build(BuildContext context) {
     final tele = ref.watch(teleprompterControllerProvider);
+    final isDesktop = AdaptiveLayout.isDesktop(context);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  _TopBar(
-                    title: _script?.title ?? 'Untitled',
-                    onClose: () => Navigator.of(context).maybePop(),
-                  ),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        _ScrollingText(
-                          controller: _scrollController,
-                          text: _script?.content ?? '',
-                          fontSize: tele.fontSize,
-                          mirror: tele.mirror,
+    final Widget body = SafeArea(
+      child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      _TopBar(
+                        title: _script?.title ?? 'Untitled',
+                        onClose: () => Navigator.of(context).maybePop(),
+                      ),
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            _ScrollingText(
+                              controller: _scrollController,
+                              text: _script?.content ?? '',
+                              fontSize: tele.fontSize,
+                              mirror: tele.mirror,
+                            ),
+                            if (tele.focusMode) const _FocusOverlay(),
+                          ],
                         ),
-                        if (tele.focusMode) const _FocusOverlay(),
-                      ],
+                      ),
+                      if (!isDesktop)
+                        TeleprompterControls(
+                          isPlaying: tele.isPlaying,
+                          onTogglePlay: _toggle,
+                          onRestart: _restart,
+                        ),
+                    ],
+                  ),
+                ),
+                if (isDesktop) ...[
+                  const VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
+                  SizedBox(
+                    width: 320,
+                    child: Container(
+                      color: AppColors.bgSidebar,
+                      child: Column(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Prompter Settings',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          TeleprompterControls(
+                            isPlaying: tele.isPlaying,
+                            onTogglePlay: _toggle,
+                            onRestart: _restart,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  TeleprompterControls(
-                    isPlaying: tele.isPlaying,
-                    onTogglePlay: _toggle,
-                    onRestart: _restart,
-                  ),
                 ],
-              ),
-      ),
+              ],
+            ),
     );
+
+    final scaffold = Scaffold(
+      backgroundColor: Colors.black,
+      body: body,
+    );
+
+    if (isDesktop) {
+      return WebDesktopShell(child: scaffold);
+    }
+    
+    return scaffold;
   }
 }
 
@@ -235,3 +280,4 @@ class _TopBar extends StatelessWidget {
     );
   }
 }
+

@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/script.dart';
+import '../../core/layout/adaptive_layout.dart';
+import '../../core/layout/web_desktop_shell.dart';
 import 'providers/editor_controller.dart';
 import 'widgets/muse_panel.dart';
 
@@ -49,13 +51,45 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ),
       builder: (_) => MusePanel(
         scriptContext: script.content,
-        onInsert: (text) {
-          final insertion = _textController.text.isEmpty ? text : '\n\n$text';
-          _textController.text = _textController.text + insertion;
-          ref
-              .read(editorControllerProvider(widget.scriptUuid).notifier)
-              .onContentChanged(_textController.text);
-        },
+        onInsert: _handleMuseInsert,
+      ),
+    );
+  }
+
+  void _handleMuseInsert(String text) {
+    final insertion = _textController.text.isEmpty ? text : '\n\n$text';
+    _textController.text = _textController.text + insertion;
+    ref
+        .read(editorControllerProvider(widget.scriptUuid).notifier)
+        .onContentChanged(_textController.text);
+  }
+
+  Widget _buildEditorField(EditorState state, EditorController controller, bool isDesktop) {
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state.script == null) {
+      return const Center(child: Text('Script not found.'));
+    }
+    
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 40 : 20),
+      child: TextField(
+        controller: _textController,
+        onChanged: controller.onContentChanged,
+        maxLines: null,
+        expands: true,
+        textAlignVertical: TextAlignVertical.top,
+        style: TextStyle(
+          fontSize: isDesktop ? 18 : 17,
+          height: 1.6,
+          color: AppColors.textPrimary,
+        ),
+        decoration: const InputDecoration(
+          filled: false,
+          border: InputBorder.none,
+          hintText: 'Start writing, or tap the spark to summon The Muse…',
+        ),
       ),
     );
   }
@@ -65,6 +99,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final provider = editorControllerProvider(widget.scriptUuid);
     final state = ref.watch(provider);
     final controller = ref.read(provider.notifier);
+    final isDesktop = AdaptiveLayout.isDesktop(context);
 
     // Seed the text field once, after the script loads from the DB.
     if (!_initialized && state.script != null) {
@@ -72,6 +107,49 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _initialized = true;
     }
 
+    if (isDesktop) {
+      return WebDesktopShell(
+        child: Scaffold(
+          backgroundColor: AppColors.bgSurface,
+          body: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    _DesktopToolbar(
+                      state: state,
+                      controller: controller,
+                      onExport: _export,
+                      onTeleprompter: () => context.push('/prompter/${widget.scriptUuid}'),
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 760),
+                          child: _buildEditorField(state, controller, true),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
+              SizedBox(
+                width: 320,
+                child: state.script == null
+                    ? const SizedBox()
+                    : MusePanel(
+                        scriptContext: _textController.text, // Live context
+                        onInsert: _handleMuseInsert,
+                      ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Mobile Layout
     return Scaffold(
       appBar: AppBar(
         leading: BackButton(
@@ -103,38 +181,112 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               onPressed: () => _openMuse(state.script!),
               child: const Icon(Icons.auto_awesome),
             ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : state.script == null
-              ? const Center(child: Text('Script not found.'))
-              : Column(
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: TextField(
-                          controller: _textController,
-                          onChanged: controller.onContentChanged,
-                          maxLines: null,
-                          expands: true,
-                          textAlignVertical: TextAlignVertical.top,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            height: 1.6,
-                            color: AppColors.textPrimary,
-                          ),
-                          decoration: const InputDecoration(
-                            filled: false,
-                            border: InputBorder.none,
-                            hintText: 'Start writing, or tap the spark to '
-                                'summon The Muse…',
-                          ),
-                        ),
-                      ),
-                    ),
-                    _StatusBar(state: state),
-                  ],
-                ),
+      body: Column(
+        children: [
+          Expanded(child: _buildEditorField(state, controller, false)),
+          _StatusBar(state: state),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopToolbar extends StatelessWidget {
+  const _DesktopToolbar({
+    required this.state,
+    required this.controller,
+    required this.onExport,
+    required this.onTeleprompter,
+  });
+
+  final EditorState state;
+  final EditorController controller;
+  final VoidCallback onExport;
+  final VoidCallback onTeleprompter;
+
+  String get _savedLabel {
+    if (state.isSaving) return 'Saving…';
+    final ts = state.lastSavedAt;
+    if (ts == null) return 'Not saved yet';
+    return 'Saved ${DateFormat.jm().format(ts)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: TextEditingController(text: state.script?.title ?? 'Untitled Script'),
+              onChanged: (title) {
+                // Update title logic could go here if editor_controller supports it
+                // We'd ideally need a setTitle on controller if it doesn't exist
+              },
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          // Formatting tools mock
+          IconButton(icon: const Icon(Icons.format_bold, size: 20), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.format_italic, size: 20), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.format_underlined, size: 20), onPressed: () {}),
+          const SizedBox(width: 8),
+          const SizedBox(height: 24, child: VerticalDivider(color: AppColors.border)),
+          const SizedBox(width: 8),
+          // Status indicators
+          Text(
+            '${state.wordCount} words',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+          ),
+          const SizedBox(width: 16),
+          if (state.isSaving)
+            const SizedBox(
+              width: 12, height: 12,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            const Icon(Icons.check_circle_outline, size: 14, color: AppColors.textMuted),
+          const SizedBox(width: 6),
+          Text(
+            _savedLabel,
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+          ),
+          const SizedBox(width: 24),
+          OutlinedButton.icon(
+            onPressed: state.script == null ? null : onExport,
+            icon: const Icon(Icons.ios_share, size: 16),
+            label: const Text('Export'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: const BorderSide(color: AppColors.border),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: state.script == null ? null : onTeleprompter,
+            icon: const Icon(Icons.slideshow, size: 16),
+            label: const Text('Prompter'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.recordGreen,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -184,3 +336,4 @@ class _StatusBar extends StatelessWidget {
     );
   }
 }
+

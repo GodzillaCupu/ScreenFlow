@@ -35,24 +35,34 @@ class DashboardScreen extends ConsumerWidget {
     if (isDesktop) {
       return Scaffold(
         body: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 40.0, vertical: 32.0),
+          padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 32.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Left Side: Header and Folders (Channels) grid
               Expanded(
                 flex: 6,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     headerNode,
-                    const SizedBox(height: 32),
-                    Expanded(child: scriptsNode),
+                    const SizedBox(height: 48),
+                    Expanded(child: foldersNode),
                   ],
                 ),
               ),
               const SizedBox(width: 48),
-              Expanded(flex: 4, child: foldersNode),
+              // Right Side: Recent Scripts
+              Expanded(
+                flex: 4, 
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 12), // Visual alignment
+                    Expanded(child: scriptsNode),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -206,7 +216,17 @@ class DashboardScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Recent Scripts', style: Theme.of(context).textTheme.titleLarge),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Recent Scripts', style: Theme.of(context).textTheme.titleLarge),
+            TextButton(
+              onPressed: () {},
+              child: const Text('View All',
+                  style: TextStyle(color: AppColors.accentBlue)),
+            ),
+          ],
+        ),
         const SizedBox(height: 16),
         body,
       ],
@@ -223,10 +243,10 @@ class DashboardScreen extends ConsumerWidget {
     final header = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('Folders', style: Theme.of(context).textTheme.titleLarge),
+        Text('Channels', style: Theme.of(context).textTheme.titleLarge),
         TextButton(
           onPressed: () {},
-          child: const Text('View All',
+          child: const Text('Manage',
               style: TextStyle(color: AppColors.accentBlue)),
         ),
       ],
@@ -263,13 +283,15 @@ class DashboardScreen extends ConsumerWidget {
           header,
           const SizedBox(height: 16),
           Expanded(
-            child: ListView.separated(
-              itemCount: projects.length,
-              separatorBuilder: (c, i) => const SizedBox(height: 12),
-              itemBuilder: (c, index) => AspectRatio(
-                aspectRatio: 2.0,
-                child: cardFor(projects[index]),
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 1.8,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
               ),
+              itemCount: projects.length,
+              itemBuilder: (context, index) => cardFor(projects[index]),
             ),
           ),
         ],
@@ -305,3 +327,4 @@ class DashboardScreen extends ConsumerWidget {
         ProjectType.other => (Icons.folder, AppColors.textSecondary),
       };
 }
+
