@@ -12,7 +12,7 @@
 
 ## 📖 Tentang ScriptFlow
 
-ScriptFlow adalah aplikasi produktivitas berbasis **local-first** (tanpa backend cloud) yang membantu kreator konten mengelola siklus pembuatan video — mulai dari **ideasi naskah** hingga **eksekusi rekaman**. Naskah, folder proyek, dan rekaman audio disimpan **sepenuhnya di perangkat**; hanya fitur AI (**Google Gemini**) yang memerlukan koneksi. Cocok untuk menulis & merekam podcast secara offline di perjalanan.
+ScriptFlow adalah aplikasi produktivitas berbasis **local-first** (tanpa backend cloud) yang membantu kreator konten mengelola siklus pembuatan video — mulai dari **ideasi naskah** hingga **eksekusi rekaman**. Naskah, folder proyek, dan rekaman audio disimpan **sepenuhnya di perangkat**; hanya fitur AI (**Google Gemini 3.5 Flash**) yang memerlukan koneksi. Cocok untuk menulis & merekam podcast secara offline di perjalanan.
 
 **Target Platform:** Android & Web Desktop (satu codebase Flutter)
 
@@ -22,11 +22,13 @@ ScriptFlow adalah aplikasi produktivitas berbasis **local-first** (tanpa backend
 
 | Fitur | Deskripsi |
 |---|---|
-| 🤖 **AI Content Assistant** | Generate naskah otomatis dari topik/kata kunci via Gemini AI |
+| 🤖 **AI Content Assistant** | Generate naskah otomatis dari topik/kata kunci via Gemini AI (v3.5 Flash) |
 | 📁 **Project Management** | Kelompokkan naskah per proyek (YouTube, TikTok, Podcast, dll.) |
 | ✏️ **Text Editor** | Editor minimalis dengan auto-save ke database lokal |
 | 📜 **Teleprompter Mode** | Teks berjalan otomatis, kecepatan & font size adjustable |
-| 🎙️ **Audio Recording** | Rekam suara lokal lewat mikrofon device (offline) |
+| 🎙️ **Audio Recording** | Rekam suara lokal lewat mikrofon device langsung di layar Teleprompter (offline) |
+| 🔍 **Search & Archive** | Pencarian naskah yang efisien serta fitur pengarsipan (*Archive*) untuk menjaga dashboard tetap rapi |
+| 👤 **Local Profile** | Kustomisasi profil kreator (Display Name & Bio) secara lokal |
 | 📤 **Export .txt** | Simpan naskah ke penyimpanan lokal + share sheet |
 | 📴 **Offline by Default** | Naskah & rekaman selalu tersedia tanpa koneksi |
 
@@ -65,12 +67,13 @@ scriptflow/
 │   │   └── repositories/       # ScriptRepository / ProjectRepository (+ Isar impl)
 │   ├── services/               # gemini · audio_recorder · export(.txt)
 │   ├── features/
+│   │   ├── archive/            # archived scripts
 │   │   ├── auth/               # login + onboarding (local gate, no cloud)
-│   │   ├── dashboard/          # workspace + project folder (Isar-backed)
+│   │   ├── dashboard/          # workspace + project folder + search
 │   │   ├── editor/             # editor + auto-save controller + Muse (AI) panel
-│   │   ├── teleprompter/       # auto-scroll screen + controls
+│   │   ├── teleprompter/       # auto-scroll screen + audio recording controls
 │   │   ├── scripts/            # script picker (Editor/Prompter tabs)
-│   │   └── settings/           # local-first preferences
+│   │   └── settings/           # local-first preferences & profile
 │   ├── shared/widgets/         # FolderCard, ScriptCard, StatusBadge
 │   └── main.dart
 └── pubspec.yaml
@@ -195,10 +198,10 @@ On-device files:
 - [x] Integrasi Gemini AI (generate, brainstorm, fix grammar)
 - [x] Teleprompter mode (auto-scroll, speed/font/mirror/focus)
 - [x] Export .txt + share sheet
-- [~] Audio recording (service siap; tombol rekam di teleprompter menyusul)
-- [ ] Version history
-- [ ] Search & filter (Archive / dalam folder)
-- [ ] Profil lokal (display name/bio) di Settings
+- [x] Audio recording di layar teleprompter
+- [x] Search & filter (Archive / dalam folder)
+- [x] Profil lokal (display name/bio) di Settings
+- [ ] Version history (Riwayat revisi script)
 
 ---
 

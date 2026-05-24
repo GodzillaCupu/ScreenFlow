@@ -11,7 +11,7 @@ abstract final class EnvConfig {
   static String get geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
   static String get geminiModel =>
-      dotenv.env['GEMINI_MODEL'] ?? 'gemini-2.0-flash';
+      dotenv.env['GEMINI_MODEL'] ?? 'gemini-3.5-flash';
 
   static bool get isConfigured => geminiApiKey.isNotEmpty;
 }
