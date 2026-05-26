@@ -2,23 +2,8 @@ import 'package:isar/isar.dart';
 
 import '../local/isar_service.dart';
 import '../models/script.dart';
-
-/// Storage contract for scripts. UI/state depend on this interface only, so
-/// the Isar backend can be swapped (e.g. a Hive implementation for web)
-/// without touching any feature code.
-abstract interface class ScriptRepository {
-  Future<List<Script>> getAll({bool includeArchived = false});
-  Stream<List<Script>> watchRecent({int limit = 10});
-  Future<List<Script>> getByProject(String projectId);
-  Future<Script?> getByUuid(String uuid);
-
-  /// Upserts the script (by uuid), refreshing wordCount + updatedAt. Returns
-  /// the Isar row id.
-  Future<int> save(Script script);
-
-  Future<void> setArchived(String uuid, {required bool archived});
-  Future<void> delete(String uuid);
-}
+import 'script_repository_interface.dart';
+export 'script_repository_interface.dart';
 
 class IsarScriptRepository implements ScriptRepository {
   IsarScriptRepository(this._isar);

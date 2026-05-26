@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:hive_ce/hive.dart';
-import 'package:isar/isar.dart' show Isar;
 
 import '../local/hive_service.dart';
 import '../models/script.dart';
-import 'script_repository.dart';
+import 'script_repository_interface.dart';
 
 class HiveScriptRepository implements ScriptRepository {
   HiveScriptRepository(this._hive);
@@ -126,7 +125,7 @@ class HiveScriptRepository implements ScriptRepository {
       ..wordCount = Script.countWords(script.content)
       ..updatedAt = DateTime.now();
       
-    if (script.id == Isar.autoIncrement) {
+    if (script.id == 0) {
       script.id = DateTime.now().millisecondsSinceEpoch;
     }
     

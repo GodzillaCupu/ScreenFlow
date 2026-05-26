@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'script.dart';
+part of 'script_native.dart';
 
 // **************************************************************************
 // IsarCollectionGenerator

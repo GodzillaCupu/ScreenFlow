@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:hive_ce/hive.dart';
-import 'package:isar/isar.dart' show Isar;
 
 import '../local/hive_service.dart';
 import '../models/project.dart';
-import 'project_repository.dart';
+import 'project_repository_interface.dart';
 
 class HiveProjectRepository implements ProjectRepository {
   HiveProjectRepository(this._hive);
@@ -99,7 +98,7 @@ class HiveProjectRepository implements ProjectRepository {
     project.updatedAt = DateTime.now();
     
     // Simulate auto-increment ID if needed, though UUID is primary key.
-    if (project.id == Isar.autoIncrement) {
+    if (project.id == 0) {
       project.id = DateTime.now().millisecondsSinceEpoch;
     }
     
